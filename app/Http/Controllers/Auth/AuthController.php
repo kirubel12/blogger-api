@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function store(Request $request)
+    public function register(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -29,5 +29,36 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'user' => $user
         ], 201);
+    }
+
+    //Login User
+    public function login(Request $request)
+    {
+        $fields =  $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string',
+        ]);
+        $user = User::where('email', $fields['email'])->first();
+
+        if (!$user || !Hash::check($fields['password'], $user->password)) {
+            return response([
+                'message' => 'Bad credentials'
+            ], 401);
+        }
+        $token = $user->createToken('auth_token')->plainTextToken;
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user
+        ], 200);
+    }
+    //Logout User
+    public function logout(Request $request)
+    {
+        auth()->user()->tokens()->delete();
+
+        return [
+            'message' => 'Logged out'
+        ];
     }
 }
